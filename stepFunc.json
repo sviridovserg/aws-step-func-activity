@@ -1,0 +1,69 @@
+{
+    "StartAt": "GetTaskData",
+    "Comment": "Simple task processor emulating PE",
+    "States": {
+      "GetTaskData": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:us-west-2:196719022531:activity:GetTaskData",
+        "InputPath": "$",
+        "ResultPath": "$.taskData",
+        "Next": "ChoiceTaskType"
+      },
+      "ChoiceTaskType": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Variable": "$.taskData.type",
+            "StringEquals": "Simple",
+            "Next": "ProcessSimpleTask"
+          }, {
+            "Variable": "$.taskData.type",
+            "StringEquals": "ValidatedTask",
+            "Next": "ValidateTask"
+          }
+        ],
+        "Default": "NoTaskType"
+      },
+      "ProcessSimpleTask": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:us-west-2:196719022531:activity:ProcessSimpleTask",
+        "InputPath": "$.taskData",
+        "Next": "CompleteTask"
+      },
+      "ValidateTask": {
+        "Type": "Task",
+        "Resource": "arn:aws:lambda:us-west-2:196719022531:function:pocValidateTask",
+        "InputPath": "$.taskData",
+        "ResultPath": "$.isTaskValid",
+        "Next": "ChoiceValidateTask"
+      },
+      "ChoiceValidateTask": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Variable": "$.isTaskValid",
+            "BooleanEquals": true,
+            "Next": "ProcessValidatedTask"
+          }
+        ],
+        "Default": "ReleaseTaskAndEnd"
+      },
+      "ProcessValidatedTask": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:us-west-2:196719022531:activity:ProcessValidatedTask",           "InputPath": "$.taskData",
+        "Next": "CompleteTask"
+      },
+      "CompleteTask": {
+        "Type": "Pass",
+        "End": true
+      },
+      "ReleaseTaskAndEnd": {
+        "Type": "Pass",
+        "End": true
+      },
+      "NoTaskType": {
+        "Type": "Fail",
+        "Cause": "No Matches!"
+      }
+    }
+  }
